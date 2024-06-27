@@ -1,11 +1,17 @@
 // import { GatewayIntentBits, Client, Partials, ActivityType } from "discord.js";
-import { serve } from "@hono/node-server";
+// started with https://developers.cloudflare.com/workers/get-started/quickstarts/
+
 import { Hono } from "hono";
-
 const app = new Hono();
-app.get("/", (c) => c.text("Hello Node.js!"));
 
-serve(app);
+app.post("/interactions", async (context) => {
+  const data = await context.req.json();
+  console.log({ data });
+  return context.body("Hello Cloudflare Workers!");
+});
+app.get("/verify", (c) => c.text("Hello Cloudflare Workers!"));
+
+export default app;
 
 // export const client = new Client({
 //   intents: [GatewayIntentBits.GuildMembers],

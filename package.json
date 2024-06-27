@@ -7,14 +7,19 @@
     "node": ">20.0.0"
   },
   "scripts": {
+    "dev": "wrangler dev index.ts",
+    "deploy:commands": "node --env-file=./.env deploy.js",
+    "deploy": "wrangler deploy --minify index.ts",
     "start": "node --env-file=./.env --watch ./index.js",
     "test": "node --test '**/*.test.js'"
   },
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@cloudflare/workers-types": "^4.20240529.0",
     "@hono/node-server": "^1.11.4",
     "discord.js": "^14.15.3",
-    "hono": "^4.4.8"
+    "hono": "^4.4.8",
+    "wrangler": "^3.62.0"
   }
 }
