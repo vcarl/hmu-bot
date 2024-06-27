@@ -1,2 +1,6 @@
 name = "hmu-bot"
 compatibility_date = "2022-05-03"
+
+[vars]
+DISCORD_APP_ID = "1255713553965518859"
+DISCORD_PUBLIC_KEY = "dc9608222a9573bd46d87de44fa3af8386c583dcddfe2cd2319cada19a320ef4"

@@ -1,15 +1,46 @@
 // import { GatewayIntentBits, Client, Partials, ActivityType } from "discord.js";
 // started with https://developers.cloudflare.com/workers/get-started/quickstarts/
 
+import { verifyKey } from "discord-interactions";
 import { Hono } from "hono";
-const app = new Hono();
+import { logger } from "hono/logger";
 
-app.post("/interactions", async (context) => {
-  const data = await context.req.json();
-  console.log({ data });
-  return context.body("Hello Cloudflare Workers!");
+const app = new Hono<{
+  Bindings: {
+    DISCORD_APP_ID: string;
+    DISCORD_PUBLIC_KEY: string;
+    DISCORD_TOKEN: string;
+  };
+}>();
+
+app.use(logger());
+
+// Discord signature verification
+app.use("/discord", async (c, next) => {
+  const isValidRequest = await verifyKey(
+    await c.req.arrayBuffer(),
+    c.req.header("X-Signature-Ed25519")!,
+    c.req.header("X-Signature-Timestamp")!,
+    c.env.DISCORD_PUBLIC_KEY,
+  );
+  if (!isValidRequest) {
+    console.log("[REQ] Invalid request signature");
+    return c.json({ message: "Bad request signature" }, 401);
+  }
+
+  const data = await c.req.json();
+  console.log("[REQ]", JSON.stringify({ data }));
+  await next();
 });
-app.get("/verify", (c) => c.text("Hello Cloudflare Workers!"));
+
+app.post("/discord", async (c) => {
+  const data = await c.req.json();
+  switch (data.type) {
+    case 1:
+      return c.json({ type: 1, data: {} });
+  }
+  return c.json({ message: "Something went wrong" });
+});
 
 export default app;
 
