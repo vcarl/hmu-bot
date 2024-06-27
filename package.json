@@ -1,0 +1,20 @@
+{
+  "name": "hmu-bot",
+  "type": "module",
+  "version": "0.0.0",
+  "description": "A bot for verifying members",
+  "engines": {
+    "node": ">20.0.0"
+  },
+  "scripts": {
+    "start": "node --env-file=./.env --watch ./index.js",
+    "test": "node --test '**/*.test.js'"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@hono/node-server": "^1.11.4",
+    "discord.js": "^14.15.3",
+    "hono": "^4.4.8"
+  }
+}
