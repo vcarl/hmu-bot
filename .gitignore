@@ -6,3 +6,4 @@ yarn.lock
 .npm
 *.log
 .wrangler
+google-service-account-keys.json
