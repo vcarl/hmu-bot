@@ -7,6 +7,7 @@ import { logger } from "hono/logger";
 
 import { APIInteractionResponse, APIMessageInteraction } from "discord.js";
 import { KVNamespace } from "@cloudflare/workers-types";
+import { getJWTFromServiceAccount } from "./google-auth";
 
 type HonoBindings = {
   DISCORD_APP_ID: string;
@@ -119,6 +120,40 @@ const retrieveSheetId = (url: string) => {
 // });
 
 // // export const reacord = new ReacordDiscordJs(client);
+const SERVICE_ACCOUNT = {
+  type: "service_account",
+  project_id: "auth-project-189019",
+  private_key_id: "68afb592c1d3108f5fa04da86a9089d0d418e3b3",
+  // private_key: "",
+  client_email: "hmu-bot@auth-project-189019.iam.gserviceaccount.com",
+  client_id: "116274722892340415772",
+  auth_uri: "https://accounts.google.com/o/oauth2/auth",
+  token_uri: "https://oauth2.googleapis.com/token",
+  auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+  client_x509_cert_url:
+    "https://www.googleapis.com/robot/v1/metadata/x509/hmu-bot%40auth-project-189019.iam.gserviceaccount.com",
+  universe_domain: "googleapis.com",
+};
+
+async function getSheetData(env: HonoBindings, spreadsheetId: string) {
+  // const authClient = "butts";
+  const authClient = await getJWTFromServiceAccount(
+    { ...SERVICE_ACCOUNT, private_key: env.GOOGLE_SA_PRIVATE_KEY },
+    {
+      aud: "https://www.googleapis.com/auth/spreadsheets.readonly",
+    },
+  );
+
+
+  try {
+    // const response = await GoogleSheets.spreadsheets.values.get(request);
+    // console.log(response.data.values);
+    // return response;
+    return { test: "butts" };
+  } catch (error) {
+    console.error(error);
+  }
+}
 
 // export const login = () => {
 //   console.log("INI", "Bootstrap starting…");
