@@ -1,16 +1,23 @@
 // import { GatewayIntentBits, Client, Partials, ActivityType } from "discord.js";
 // started with https://developers.cloudflare.com/workers/get-started/quickstarts/
 
-import { verifyKey } from "discord-interactions";
-import { Hono } from "hono";
+import { InteractionResponseType, verifyKey } from "discord-interactions";
+import { Context, Hono } from "hono";
 import { logger } from "hono/logger";
 
+import { APIInteractionResponse, APIMessageInteraction } from "discord.js";
+import { KVNamespace } from "@cloudflare/workers-types";
+
+type HonoBindings = {
+  DISCORD_APP_ID: string;
+  DISCORD_PUBLIC_KEY: string;
+  DISCORD_TOKEN: string;
+  GOOGLE_SA_PRIVATE_KEY: string;
+  hmu_bot: KVNamespace;
+};
+
 const app = new Hono<{
-  Bindings: {
-    DISCORD_APP_ID: string;
-    DISCORD_PUBLIC_KEY: string;
-    DISCORD_TOKEN: string;
-  };
+  Bindings: HonoBindings;
 }>();
 
 app.use(logger());
@@ -33,11 +40,37 @@ app.use("/discord", async (c, next) => {
   await next();
 });
 
+// Actual logic
 app.post("/discord", async (c) => {
-  const data = await c.req.json();
-  switch (data.type) {
+  const interaction = await c.req.json();
+  switch (interaction.type) {
     case 1:
       return c.json({ type: 1, data: {} });
+    case 2:
+      if (interaction.data.name === "setup") {
+        const setupResult = await setup(
+          c.env,
+          interaction.guild_id,
+          interaction.data.options,
+        );
+
+        if (setupResult.ok) {
+          return c.json({
+            type: 4,
+            data: {
+              content: `That looks like it worked! Here are the column headers I found where I expected to find 'email': ${setupResult.data.join(
+                ", ",
+              )}`,
+            },
+          } as APIInteractionResponse);
+        }
+        return c.json({
+          type: 4,
+          data: {
+            content: `Something broke! Here's all I know: '${setupResult.reason}'`,
+          },
+        } as APIInteractionResponse);
+      }
   }
   return c.json({ message: "Something went wrong" });
 });
@@ -46,6 +79,43 @@ export default app;
 
 // export const client = new Client({
 //   intents: [GatewayIntentBits.GuildMembers],
+type SetupOptions = {
+  name: "sheet-url";
+  type: 3;
+  value: string;
+}[];
+
+const setupFailureReasons = {
+  invalidUrl: "That URL doesn’t look like a Google Sheet",
+} as const;
+type SetupFailureReason =
+  typeof setupFailureReasons[keyof typeof setupFailureReasons];
+
+async function setup(
+  env: HonoBindings,
+  guildId: string,
+  options: SetupOptions,
+): Promise<
+  { ok: true; data: string[] } | { ok: false; reason: SetupFailureReason }
+> {
+  const url = options.find((o) => o.name === "sheet-url");
+  const documentId = url ? retrieveSheetId(url.value) : "";
+  if (!documentId) {
+    return { ok: false, reason: setupFailureReasons.invalidUrl };
+  }
+
+  await env.hmu_bot.put(guildId, documentId);
+
+  return {
+    ok: true,
+    data: ["these", "should be", "column headers", "eventually"],
+  };
+}
+
+const retrieveSheetId = (url: string) => {
+  const match = url.match(/\/d\/([^/]+)\/edit/);
+  return match ? match[1] : null;
+};
 // });
 
 // // export const reacord = new ReacordDiscordJs(client);
