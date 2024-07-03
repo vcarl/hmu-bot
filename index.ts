@@ -21,6 +21,16 @@ const app = new Hono<{
 
 app.use(logger());
 
+app.use("/*", async (c, next) => {
+  const { alreadyHadToken, reloadAccessToken } = init(
+    c.env.GOOGLE_SA_PRIVATE_KEY,
+  );
+  if (!alreadyHadToken) {
+    await reloadAccessToken();
+  }
+  await next();
+});
+
 // Discord signature verification
 app.use("/discord", async (c, next) => {
   const isValidRequest = await verifyKey(
@@ -32,13 +42,6 @@ app.use("/discord", async (c, next) => {
   if (!isValidRequest) {
     console.log("[REQ] Invalid request signature");
     return c.json({ message: "Bad request signature" }, 401);
-  }
-  const { alreadyHadToken, reloadAccessToken } = init(
-    c.env.GOOGLE_SA_PRIVATE_KEY,
-  );
-  console.log({ alreadyHadToken });
-  if (!alreadyHadToken) {
-    await reloadAccessToken();
   }
 
   await next();
