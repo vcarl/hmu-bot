@@ -90,6 +90,8 @@ type SetupOptions = {
 const setupFailureReasons = {
   invalidUrl: "That URL doesn’t look like a Google Sheet",
   errorFetching: "There was a problem fetching from the Google Sheet",
+  wrongHeadings:
+    "The Google Sheet provided did not have the sheet name or column headers expected. Looked for sheets named 'Private Members' and 'Vetted Members', looked for 'Email Address' in column D.",
 } as const;
 type SetupFailureReason =
   typeof setupFailureReasons[keyof typeof setupFailureReasons];
@@ -115,7 +117,11 @@ async function setup(
       fetchSheet(documentId, "Private Members!D1"),
     ]);
 
-    const columnHeadings = data.flatMap((d) => d.values);
+    const columnHeadings = data.flatMap((d) => d.values.flat());
+    console.log({ columnHeadings });
+    if (!columnHeadings.every((h) => h === "Email Address")) {
+      return { ok: false, reason: setupFailureReasons.wrongHeadings };
+    }
 
     return { ok: true, data: columnHeadings };
   } catch (e) {
