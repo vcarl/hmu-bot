@@ -9,6 +9,7 @@ import { fetchSheet, init } from "./google-sheets";
 
 type HonoBindings = {
   DISCORD_APP_ID: string;
+  DISCORD_GUILD_ID: string;
   DISCORD_PUBLIC_KEY: string;
   DISCORD_TOKEN: string;
   GOOGLE_SA_PRIVATE_KEY: string;
@@ -101,7 +102,6 @@ type SetupFailureReason =
 
 async function setup(
   env: HonoBindings,
-  guildId: string,
   options: SetupOptions,
 ): Promise<
   { ok: true; data: string[] } | { ok: false; reason: SetupFailureReason }

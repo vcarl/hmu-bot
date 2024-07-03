@@ -5,7 +5,7 @@ import {
   SlashCommandBuilder,
 } from "discord.js";
 
-const GUILD_ID = "1008767610910945361";
+const GUILD_ID = process.env.DISCORD_GUILD_ID;
 
 const commands = [
   new SlashCommandBuilder()
