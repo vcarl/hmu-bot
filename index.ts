@@ -1,17 +1,25 @@
 // started with https://developers.cloudflare.com/workers/get-started/quickstarts/
-import { verifyKey } from "discord-interactions";
+import {
+  MessageComponentTypes,
+  ButtonStyleTypes,
+  verifyKey,
+  InteractionResponseType,
+} from "discord-interactions";
 import { Hono } from "hono";
 import { logger } from "hono/logger";
 
-import { APIInteractionResponse, APIMessageInteraction } from "discord.js";
 import { KVNamespace } from "@cloudflare/workers-types";
 import { fetchSheet, init } from "./google-sheets";
+import { fetchEmailFromCode, grantRole } from "./discord";
+import { ApplicationCommandOptionType } from "discord.js";
 
 type HonoBindings = {
   DISCORD_APP_ID: string;
   DISCORD_GUILD_ID: string;
   DISCORD_PUBLIC_KEY: string;
   DISCORD_TOKEN: string;
+  DISCORD_SECRET: string;
+  DISCORD_OAUTH_DESTINATION: string;
   GOOGLE_SA_PRIVATE_KEY: string;
   hmu_bot: KVNamespace;
 };
@@ -56,40 +64,114 @@ app.post("/discord", async (c) => {
       return c.json({ type: 1, data: {} });
     case 2:
       if (interaction.data.name === "setup") {
-        const setupResult = await setup(
-          c.env,
-          interaction.guild_id,
-          interaction.data.options,
-        );
+        const setupResult = await setup(c.env, interaction.data.options);
 
         if (setupResult.ok) {
           return c.json({
-            type: 4,
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
             data: {
-              content: `That looks like it worked! Here are the column headers I found where I expected to find 'Email Address': ${setupResult.data.join(
-                ", ",
-              )}`,
+              content: `Welcome to Hit Me Up NYC! Please verify your account to gain access to the correct private spaces.`,
+              components: [
+                {
+                  type: MessageComponentTypes.ACTION_ROW,
+                  components: [
+                    {
+                      type: MessageComponentTypes.BUTTON,
+                      style: ButtonStyleTypes.LINK,
+                      label: "Verify me",
+                      url: `https://discord.com/oauth2/authorize?client_id=1255713553965518859&response_type=code&redirect_uri=${encodeURIComponent(
+                        c.env.DISCORD_OAUTH_DESTINATION,
+                      )}&scope=email+identify`,
+                    },
+                  ],
+                },
+              ],
             },
-          } as APIInteractionResponse);
+          });
         }
         return c.json({
-          type: 4,
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
           data: {
             content: `Something broke! Here's all I know: '${setupResult.reason}'`,
           },
-        } as APIInteractionResponse);
+        });
       }
   }
   return c.json({ message: "Something went wrong" });
 });
+app.get("/oauth", async (c) => {
+  // Currently this doesn't require that the user's email be verified in Discord
+  const { id: userId, email } = await fetchEmailFromCode(
+    c.req.query("code") || "",
+    c.env.DISCORD_APP_ID,
+    c.env.DISCORD_SECRET,
+  );
+  // if verified email isn't found, request an email address and manually verify
+
+  const [documentId, vettedRoleId, privateRoleId] = await Promise.all([
+    c.env.hmu_bot.get("sheet"),
+    c.env.hmu_bot.get("vetted"),
+    c.env.hmu_bot.get("private"),
+  ]);
+  if (!documentId || !vettedRoleId || !privateRoleId) {
+    return c.html(
+      "<p>Oh no, for some reason a required value was missing. Please report this to the adminstrators.</p>",
+    );
+  }
+
+  const [vettedSheet, privateSheet] = await Promise.all([
+    fetchSheet(documentId, "Vetted Members!D2:D"),
+    fetchSheet(documentId, "Private Members!D2:D"),
+  ]);
+
+  if (
+    getEmailListFromSheetValues(vettedSheet.values).some((e) => e === email)
+  ) {
+    console.log(`Granting vetted role to user ${userId}`);
+    await grantRole(
+      c.env.DISCORD_TOKEN,
+      c.env.DISCORD_GUILD_ID,
+      vettedRoleId,
+      userId,
+    );
+  }
+  if (
+    getEmailListFromSheetValues(privateSheet.values).some((e) => e === email)
+  ) {
+    console.log(`Granting private role to user ${userId}`);
+    await grantRole(
+      c.env.DISCORD_TOKEN,
+      c.env.DISCORD_GUILD_ID,
+      privateRoleId,
+      userId,
+    );
+  }
+
+  return c.html(`<p>You've had roles applied!</p>`);
+});
+
+const getEmailListFromSheetValues = (sheetValues) =>
+  sheetValues.flatMap((v) => v.flat());
 
 export default app;
 
-type SetupOptions = {
-  name: "sheet-url";
-  type: 3;
-  value: string;
-}[];
+type SetupOptions = (
+  | {
+      name: "sheet-url";
+      type: ApplicationCommandOptionType.String;
+      value: string;
+    }
+  | {
+      name: "private-role";
+      type: ApplicationCommandOptionType.Role;
+      value: string;
+    }
+  | {
+      name: "vetted-role";
+      type: ApplicationCommandOptionType.Role;
+      value: string;
+    }
+)[];
 
 const setupFailureReasons = {
   invalidUrl: "That URL doesn’t look like a Google Sheet",
@@ -107,12 +189,20 @@ async function setup(
   { ok: true; data: string[] } | { ok: false; reason: SetupFailureReason }
 > {
   const url = options.find((o) => o.name === "sheet-url");
+  const vettedRoleId =
+    options.find((o) => o.name === "vetted-role")?.value || "";
+  const privateRoleId =
+    options.find((o) => o.name === "private-role")?.value || "";
   const documentId = url ? retrieveSheetId(url.value) : "";
   if (!documentId) {
     return { ok: false, reason: setupFailureReasons.invalidUrl };
   }
 
-  await env.hmu_bot.put(guildId, documentId);
+  await Promise.all([
+    env.hmu_bot.put("sheet", documentId),
+    env.hmu_bot.put("vetted", vettedRoleId),
+    env.hmu_bot.put("private", privateRoleId),
+  ]);
 
   try {
     const data = await Promise.all([

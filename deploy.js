@@ -19,6 +19,18 @@ const commands = [
           "The Google Sheet to cross-reference for verified members",
         )
         .setRequired(true),
+    )
+    .addRoleOption((x) =>
+      x
+        .setName("vetted-role")
+        .setDescription("The role to grant to Vetted members")
+        .setRequired(true),
+    )
+    .addRoleOption((x) =>
+      x
+        .setName("private-role")
+        .setDescription("The role to grant to Private members")
+        .setRequired(true),
     ),
 ];
 
