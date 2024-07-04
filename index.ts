@@ -105,6 +105,7 @@ app.get("/oauth", async (c) => {
     c.req.query("code") || "",
     c.env.DISCORD_APP_ID,
     c.env.DISCORD_SECRET,
+    c.env.DISCORD_OAUTH_DESTINATION,
   );
   // if verified email isn't found, request an email address and manually verify
 

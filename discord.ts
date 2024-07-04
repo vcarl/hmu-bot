@@ -2,6 +2,7 @@ export async function fetchEmailFromCode(
   code: string,
   clientId: string,
   clientSecret: string,
+  oauthDestination: string,
 ) {
   const res = await retry(() =>
     fetch("https://discord.com/api/oauth2/token", {
@@ -10,7 +11,7 @@ export async function fetchEmailFromCode(
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: `client_id=${clientId}&client_secret=${clientSecret}&grant_type=authorization_code&code=${code}&redirect_uri=${encodeURIComponent(
-        "https://c3d2-2603-7000-8500-3979-c07a-c6a8-b727-5eff.ngrok-free.app/oauth",
+        oauthDestination,
       )}`,
     }),
   );
