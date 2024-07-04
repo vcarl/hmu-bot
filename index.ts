@@ -124,9 +124,9 @@ app.get("/oauth", async (c) => {
     fetchSheet(documentId, "Private Members!D2:D"),
   ]);
 
-  if (
-    getEmailListFromSheetValues(vettedSheet.values).some((e) => e === email)
-  ) {
+  const vettedEmails = getEmailListFromSheetValues(vettedSheet.values);
+  const isVetted = vettedEmails.some((e) => e === email);
+  if (isVetted) {
     console.log(`Granting vetted role to user ${userId}`);
     await grantRole(
       c.env.DISCORD_TOKEN,
@@ -135,15 +135,22 @@ app.get("/oauth", async (c) => {
       userId,
     );
   }
-  if (
-    getEmailListFromSheetValues(privateSheet.values).some((e) => e === email)
-  ) {
+
+  const privateEmails = getEmailListFromSheetValues(privateSheet.values);
+  const isPrivate = privateEmails.some((e) => e === email);
+  if (isPrivate) {
     console.log(`Granting private role to user ${userId}`);
     await grantRole(
       c.env.DISCORD_TOKEN,
       c.env.DISCORD_GUILD_ID,
       privateRoleId,
       userId,
+    );
+  }
+
+  if (!isPrivate && !isVetted) {
+    return c.html(
+      `<p>${email} was not found in the list of vetted members.</p>`,
     );
   }
 
