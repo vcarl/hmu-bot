@@ -11,7 +11,6 @@ import { logger } from "hono/logger";
 import { KVNamespace } from "@cloudflare/workers-types";
 import { fetchSheet, init } from "./google-sheets";
 import { fetchEmailFromCode, grantRole } from "./discord";
-import { ApplicationCommandOptionType } from "discord.js";
 
 type HonoBindings = {
   DISCORD_APP_ID: string;
@@ -162,6 +161,20 @@ const getEmailListFromSheetValues = (sheetValues) =>
   sheetValues.flatMap((v) => v.flat());
 
 export default app;
+
+enum ApplicationCommandOptionType {
+  Subcommand = 1,
+  SubcommandGroup = 2,
+  String = 3,
+  Integer = 4,
+  Boolean = 5,
+  User = 6,
+  Channel = 7,
+  Role = 8,
+  Mentionable = 9,
+  Number = 10,
+  Attachment = 11,
+}
 
 type SetupOptions = (
   | {
