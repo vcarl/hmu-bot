@@ -100,12 +100,13 @@ app.post("/discord", async (c) => {
 });
 app.get("/oauth", async (c) => {
   // Currently this doesn't require that the user's email be verified in Discord
-  const { id: userId, email } = await fetchEmailFromCode(
+  const { id: userId, email: rawEmail } = await fetchEmailFromCode(
     c.req.query("code") || "",
     c.env.DISCORD_APP_ID,
     c.env.DISCORD_SECRET,
     c.env.DISCORD_OAUTH_DESTINATION,
   );
+  const email = cleanEmail(rawEmail);
   // if verified email isn't found, request an email address and manually verify
 
   const [documentId, vettedRoleId, privateRoleId] = await Promise.all([
@@ -125,7 +126,7 @@ app.get("/oauth", async (c) => {
   ]);
 
   const vettedEmails = getEmailListFromSheetValues(vettedSheet.values);
-  const isVetted = vettedEmails.some((e) => e === email);
+  const isVetted = vettedEmails.some((e) => e.toLowerCase() === email);
   if (isVetted) {
     console.log(`Granting vetted role to user ${userId}`);
     await grantRole(
@@ -137,7 +138,7 @@ app.get("/oauth", async (c) => {
   }
 
   const privateEmails = getEmailListFromSheetValues(privateSheet.values);
-  const isPrivate = privateEmails.some((e) => e === email);
+  const isPrivate = privateEmails.some((e) => e.toLowerCase() === email);
   if (isPrivate) {
     console.log(`Granting private role to user ${userId}`);
     await grantRole(
@@ -201,7 +202,7 @@ const setupFailureReasons = {
     "The Google Sheet provided did not have the sheet name or column headers expected. Looked for sheets named 'Private Members' and 'Vetted Members', looked for 'Email Address' in column D.",
 } as const;
 type SetupFailureReason =
-  typeof setupFailureReasons[keyof typeof setupFailureReasons];
+  (typeof setupFailureReasons)[keyof typeof setupFailureReasons];
 
 async function setup(
   env: HonoBindings,
@@ -251,4 +252,8 @@ async function setup(
 const retrieveSheetId = (url: string) => {
   const match = url.match(/\/d\/([^/]+)\/edit/);
   return match ? match[1] : null;
+};
+
+const cleanEmail = (email: string) => {
+  return email.toLowerCase();
 };
