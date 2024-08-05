@@ -11,6 +11,7 @@ import { logger } from "hono/logger";
 import { KVNamespace } from "@cloudflare/workers-types";
 import { fetchSheet, init } from "./google-sheets";
 import { fetchEmailFromCode, grantRole } from "./discord";
+import { layout, success } from "./templates";
 
 type HonoBindings = {
   DISCORD_APP_ID: string;
@@ -116,7 +117,9 @@ app.get("/oauth", async (c) => {
   ]);
   if (!documentId || !vettedRoleId || !privateRoleId) {
     return c.html(
-      "<p>Oh no, for some reason a required value was missing. Please report this to the adminstrators.</p>",
+      layout(
+        "<p>Oh no, for some reason a required value was missing. Please report this to the Discord admins, this shouldn't have been possible.</p>",
+      ),
     );
   }
 
@@ -155,7 +158,7 @@ app.get("/oauth", async (c) => {
     );
   }
 
-  return c.html(`<p>You've had roles applied!</p>`);
+  return c.html(success());
 });
 
 const getEmailListFromSheetValues = (sheetValues) =>
