@@ -21,6 +21,8 @@ type HonoBindings = {
   DISCORD_SECRET: string;
   DISCORD_OAUTH_DESTINATION: string;
   GOOGLE_SA_PRIVATE_KEY: string;
+  MAILJET_PUBLIC: string;
+  MAILJET_KEY: string;
   hmu_bot: KVNamespace;
 };
 
@@ -29,6 +31,8 @@ const app = new Hono<{
 }>();
 
 app.use(logger());
+
+app.get("/2a3df3582beb0e90854fb9819c88e36e.txt", (c) => c.text(""));
 
 app.use("/*", async (c, next) => {
   const { alreadyHadToken, reloadAccessToken } = init(
