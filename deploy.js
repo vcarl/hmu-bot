@@ -32,6 +32,18 @@ const commands = [
         .setDescription("The role to grant to Private members")
         .setRequired(true),
     ),
+  new SlashCommandBuilder()
+    .setName("verify-email")
+    .setDescription(
+      "Manually verify that an email address is in the member list.",
+    )
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+    .addStringOption((x) =>
+      x
+        .setName("email")
+        .setDescription("Their email address")
+        .setRequired(true),
+    ),
 ];
 
 const rest = new REST().setToken(process.env.DISCORD_TOKEN);

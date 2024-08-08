@@ -96,6 +96,37 @@ app.post("/discord", async (c) => {
           },
         });
       }
+      if (interaction.data.name === "verify-email") {
+        const documentId = await c.env.hmu_bot.get("sheet");
+        const emailOption = interaction.data.options.find(
+          (x) => x.name === "email",
+        );
+        const email = emailOption.value;
+        if (!documentId || !email) {
+          return c.json({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: {
+              content: `Needed both an email (${
+                email ? "ok" : "not ok"
+              }) and documentId (${documentId ? "ok" : "not ok"})`,
+            },
+          });
+        }
+        const { isVetted, isPrivate } = await checkMembership(
+          documentId,
+          email,
+        );
+        return c.json({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: {
+            content: `This email ${
+              isVetted ? "IS" : "is NOT"
+            } a vetted member and ${
+              isPrivate ? "IS" : "is NOT"
+            } a private member`,
+          },
+        });
+      }
   }
   return c.json({ message: "Something went wrong" });
 });
@@ -107,14 +138,13 @@ app.get("/oauth", async (c) => {
     c.env.DISCORD_SECRET,
     c.env.DISCORD_OAUTH_DESTINATION,
   );
-  const email = cleanEmail(rawEmail);
-  // if verified email isn't found, request an email address and manually verify
 
   const [documentId, vettedRoleId, privateRoleId] = await Promise.all([
     c.env.hmu_bot.get("sheet"),
     c.env.hmu_bot.get("vetted"),
     c.env.hmu_bot.get("private"),
   ]);
+
   if (!documentId || !vettedRoleId || !privateRoleId) {
     return c.html(
       layout(
@@ -122,7 +152,48 @@ app.get("/oauth", async (c) => {
       ),
     );
   }
+  try {
+    const { isVetted, isPrivate } = await checkMembership(
+      documentId,
+      cleanEmail(rawEmail),
+    );
+    if (isVetted) {
+      console.log(`Granting vetted role to user ${userId}`);
+      await grantRole(
+        c.env.DISCORD_TOKEN,
+        c.env.DISCORD_GUILD_ID,
+        vettedRoleId,
+        userId,
+      );
+    }
 
+    if (isPrivate) {
+      console.log(`Granting private role to user ${userId}`);
+      await grantRole(
+        c.env.DISCORD_TOKEN,
+        c.env.DISCORD_GUILD_ID,
+        privateRoleId,
+        userId,
+      );
+    }
+
+    if (!isPrivate && !isVetted) {
+      return c.html(
+        `<p>${rawEmail} was not found in the list of vetted members.</p>`,
+      );
+    }
+  } catch (e) {
+    return c.html(
+      layout(
+        "<p>Oh no, something went wrong while checking your membership! Please report this to the Discord admins, this shouldn't have been possible.</p>",
+      ),
+    );
+  }
+
+  return c.html(success());
+});
+
+const checkMembership = async (documentId: string, email: string) => {
   const [vettedSheet, privateSheet] = await Promise.all([
     fetchSheet(documentId, "Vetted Members!D2:D"),
     fetchSheet(documentId, "Private Members!D2:D"),
@@ -130,36 +201,11 @@ app.get("/oauth", async (c) => {
 
   const vettedEmails = getEmailListFromSheetValues(vettedSheet.values);
   const isVetted = vettedEmails.some((e) => e.toLowerCase() === email);
-  if (isVetted) {
-    console.log(`Granting vetted role to user ${userId}`);
-    await grantRole(
-      c.env.DISCORD_TOKEN,
-      c.env.DISCORD_GUILD_ID,
-      vettedRoleId,
-      userId,
-    );
-  }
 
   const privateEmails = getEmailListFromSheetValues(privateSheet.values);
   const isPrivate = privateEmails.some((e) => e.toLowerCase() === email);
-  if (isPrivate) {
-    console.log(`Granting private role to user ${userId}`);
-    await grantRole(
-      c.env.DISCORD_TOKEN,
-      c.env.DISCORD_GUILD_ID,
-      privateRoleId,
-      userId,
-    );
-  }
-
-  if (!isPrivate && !isVetted) {
-    return c.html(
-      `<p>${email} was not found in the list of vetted members.</p>`,
-    );
-  }
-
-  return c.html(success());
-});
+  return { isVetted, isPrivate };
+};
 
 const getEmailListFromSheetValues = (sheetValues) =>
   sheetValues.flatMap((v) => v.flat());
