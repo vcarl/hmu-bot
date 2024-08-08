@@ -132,7 +132,7 @@ app.post("/discord", async (c) => {
 });
 app.get("/oauth", async (c) => {
   // Currently this doesn't require that the user's email be verified in Discord
-  const { id: userId, email: rawEmail } = await fetchEmailFromCode(
+  const { id: userId, email } = await fetchEmailFromCode(
     c.req.query("code") || "",
     c.env.DISCORD_APP_ID,
     c.env.DISCORD_SECRET,
@@ -153,10 +153,7 @@ app.get("/oauth", async (c) => {
     );
   }
   try {
-    const { isVetted, isPrivate } = await checkMembership(
-      documentId,
-      cleanEmail(rawEmail),
-    );
+    const { isVetted, isPrivate } = await checkMembership(documentId, email);
     if (isVetted) {
       console.log(`Granting vetted role to user ${userId}`);
       await grantRole(
@@ -179,7 +176,7 @@ app.get("/oauth", async (c) => {
 
     if (!isPrivate && !isVetted) {
       return c.html(
-        `<p>${rawEmail} was not found in the list of vetted members.</p>`,
+        `<p>${email} was not found in the list of vetted members.</p>`,
       );
     }
   } catch (e) {
@@ -199,11 +196,13 @@ const checkMembership = async (documentId: string, email: string) => {
     fetchSheet(documentId, "Private Members!D2:D"),
   ]);
 
+  const lcEmail = cleanEmail(email);
+
   const vettedEmails = getEmailListFromSheetValues(vettedSheet.values);
-  const isVetted = vettedEmails.some((e) => e.toLowerCase() === email);
+  const isVetted = vettedEmails.some((e) => e.toLowerCase() === lcEmail);
 
   const privateEmails = getEmailListFromSheetValues(privateSheet.values);
-  const isPrivate = privateEmails.some((e) => e.toLowerCase() === email);
+  const isPrivate = privateEmails.some((e) => e.toLowerCase() === lcEmail);
   return { isVetted, isPrivate };
 };
 
