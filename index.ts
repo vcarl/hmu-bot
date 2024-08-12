@@ -117,28 +117,24 @@ app.post("/discord", async (c) => {
         });
       }
       if (interaction.data.name === "verify-email") {
-        const documentId = await c.env.hmu_bot.get("sheet");
         const emailOption = interaction.data.options.find(
           (x) => x.name === "email",
         );
         const email = emailOption.value;
-        if (!documentId || !email) {
+        if (!email) {
           return c.json({
             type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
             data: {
-              content: `Needed both an email (${
-                email ? "ok" : "not ok"
-              }) and documentId (${documentId ? "ok" : "not ok"})`,
+              flags: InteractionResponseFlags.EPHEMERAL,
+              content: `Needed an email (${email ? "ok" : "not ok"})`,
             },
           });
         }
-        const { isVetted, isPrivate } = await checkMembership(
-          documentId,
-          email,
-        );
+        const { isVetted, isPrivate } = await checkMembership(c, email);
         return c.json({
           type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
           data: {
+            flags: InteractionResponseFlags.EPHEMERAL,
             content: `This email ${
               isVetted ? "IS" : "is NOT"
             } a vetted member and ${
