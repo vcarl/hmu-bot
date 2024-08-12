@@ -213,7 +213,9 @@ app.post("/discord", async (c) => {
           `${c.env.MAILJET_PUBLIC}:${c.env.MAILJET_KEY}`,
         );
         // Store the OTP, keyed by their email. Set it to expire in 5 mins
-        c.env.hmu_bot.put(`email:${email}`, otp, { expirationTtl: 60 * 5 });
+        await c.env.hmu_bot.put(`email:${email}`, otp, {
+          expirationTtl: 60 * 5,
+        });
 
         return c.json({
           type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
