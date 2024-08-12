@@ -345,7 +345,7 @@ app.get("/oauth", async (c) => {
 });
 
 const checkMembership = async (c: any, email: string) => {
-  const documentId = c.env.hmu_bot.get("sheet");
+  const documentId = await c.env.hmu_bot.get("sheet");
   if (!documentId) {
     throw new Error("no 'sheet' in KV store");
   }
