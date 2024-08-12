@@ -4,6 +4,8 @@ import {
   ButtonStyleTypes,
   verifyKey,
   InteractionResponseType,
+  TextStyleTypes,
+  InteractionResponseFlags,
 } from "discord-interactions";
 import { Hono } from "hono";
 import { logger } from "hono/logger";
@@ -12,6 +14,9 @@ import { KVNamespace } from "@cloudflare/workers-types";
 import { fetchSheet, init } from "./google-sheets";
 import { fetchEmailFromCode, grantRole } from "./discord";
 import { layout, success } from "./templates";
+import { sendEmail } from "./mailjet";
+import OTP from "otp";
+import { MessageFlagsBitField } from "discord.js";
 
 type HonoBindings = {
   DISCORD_APP_ID: string;
@@ -63,10 +68,12 @@ app.use("/discord", async (c, next) => {
 // Actual logic
 app.post("/discord", async (c) => {
   const interaction = await c.req.json();
+  console.log("data:", JSON.stringify(interaction.data, null, 2));
+  // top-level interactions (slash commands etc)
   switch (interaction.type) {
     case 1:
       return c.json({ type: 1, data: {} });
-    case 2:
+    case 2: {
       if (interaction.data.name === "setup") {
         const setupResult = await setup(c.env, interaction.data.options);
 
@@ -86,6 +93,12 @@ app.post("/discord", async (c) => {
                       url: `https://discord.com/oauth2/authorize?client_id=1255713553965518859&response_type=code&redirect_uri=${encodeURIComponent(
                         c.env.DISCORD_OAUTH_DESTINATION,
                       )}&scope=email+identify`,
+                    },
+                    {
+                      type: MessageComponentTypes.BUTTON,
+                      style: ButtonStyleTypes.SECONDARY,
+                      label: "Manually verify email",
+                      custom_id: "manual-verify",
                     },
                   ],
                 },
@@ -131,6 +144,144 @@ app.post("/discord", async (c) => {
           },
         });
       }
+      if (interaction.data.name.includes("verify-email")) {
+        const [_, email] = interaction.data.name.split("verify-email:");
+        return c.json({
+          type: InteractionResponseType.MODAL,
+          data: {
+            custom_id: `modal-confirm-code:${email}`,
+            title: "Confirmation code:",
+            components: [
+              {
+                type: 1,
+                components: [
+                  {
+                    type: MessageComponentTypes.INPUT_TEXT,
+                    custom_id: "code",
+                    label: "Confirmation code",
+                    style: TextStyleTypes.SHORT,
+                    min_length: 6,
+                    max_length: 6,
+                    placeholder: "000000",
+                    required: true,
+                  },
+                ],
+              },
+            ],
+          },
+        });
+      }
+    }
+    case 5: {
+      if (interaction.data.custom_id === "modal-verify-email") {
+        // Send verification email, respond with a new modal for code
+        const email = interaction.data.components[0].components[0].value;
+        const otpGen = new OTP();
+        const otp = otpGen.hotp(0);
+        await sendEmail(
+          email,
+          otp,
+          `${c.env.MAILJET_PUBLIC}:${c.env.MAILJET_KEY}`,
+        );
+        // Store the OTP, keyed by their email. Set it to expire in 5 mins
+        c.env.hmu_bot.put(`email:${email}`, otp, { expirationTtl: 60 * 5 });
+
+        return c.json({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: {
+            content: `Thanks, check your email for a confirmation code from \`hello@hitmeupnyc.com\`! Make sure to check spam if you don't see it.`,
+            flags: InteractionResponseFlags.EPHEMERAL,
+            components: [
+              {
+                type: MessageComponentTypes.ACTION_ROW,
+                components: [
+                  {
+                    type: MessageComponentTypes.BUTTON,
+                    style: ButtonStyleTypes.PRIMARY,
+                    custom_id: `verify-email:${email}`,
+                    label: "Enter verification code",
+                  },
+                ],
+              },
+            ],
+          },
+        });
+      }
+      if (interaction.data.custom_id.includes("modal-confirm-code")) {
+        const [_, email] = interaction.data.custom_id.split(
+          "modal-confirm-code:",
+        );
+        const code = interaction.data.components[0].components[0].value;
+
+        const userId = interaction.user.id;
+        const [storedCode, vettedRoleId, privateRoleId] = await Promise.all([
+          c.env.hmu_bot.get(`email:${email}`),
+          c.env.hmu_bot.get("vetted"),
+          c.env.hmu_bot.get("private"),
+        ]);
+        console.log({ userId, code, storedCode });
+        if (code === (await storedCode)) {
+          const { isPrivate, isVetted } = await checkMembership(
+            c,
+            cleanEmail(email),
+          );
+          if (isVetted) {
+            console.log(`Granting vetted role to user ${userId}`);
+            await grantRole(
+              c.env.DISCORD_TOKEN,
+              c.env.DISCORD_GUILD_ID,
+              vettedRoleId,
+              userId,
+            );
+          }
+
+          if (isPrivate) {
+            console.log(`Granting private role to user ${userId}`);
+            await grantRole(
+              c.env.DISCORD_TOKEN,
+              c.env.DISCORD_GUILD_ID,
+              privateRoleId,
+              userId,
+            );
+          }
+        }
+        // check if code matches the one in the db
+      }
+    }
+    case 9: {
+    }
+  }
+  // Buttons etc
+  // there's probably a way to move this up into the first switch
+  switch (interaction.data.component_type) {
+    case 2: {
+      if (interaction.data.custom_id === "manual-verify") {
+        return c.json({
+          type: InteractionResponseType.MODAL,
+          data: {
+            custom_id: "modal-verify-email",
+            title: "What email do you subscribe to HMU?",
+            components: [
+              {
+                type: 1,
+                components: [
+                  {
+                    type: MessageComponentTypes.INPUT_TEXT,
+                    custom_id: "email",
+                    label: "Email",
+                    style: TextStyleTypes.SHORT,
+                    min_length: 5,
+                    max_length: 100,
+                    placeholder: "calvin@gross.edu",
+                    required: true,
+                  },
+                ],
+              },
+            ],
+          },
+        });
+      }
+    }
   }
   return c.json({ message: "Something went wrong" });
 });
@@ -143,13 +294,12 @@ app.get("/oauth", async (c) => {
     c.env.DISCORD_OAUTH_DESTINATION,
   );
 
-  const [documentId, vettedRoleId, privateRoleId] = await Promise.all([
-    c.env.hmu_bot.get("sheet"),
+  const [vettedRoleId, privateRoleId] = await Promise.all([
     c.env.hmu_bot.get("vetted"),
     c.env.hmu_bot.get("private"),
   ]);
 
-  if (!documentId || !vettedRoleId || !privateRoleId) {
+  if (!vettedRoleId || !privateRoleId) {
     return c.html(
       layout(
         "<p>Oh no, for some reason a required value was missing. Please report this to the Discord admins, this shouldn't have been possible.</p>",
@@ -157,7 +307,7 @@ app.get("/oauth", async (c) => {
     );
   }
   try {
-    const { isVetted, isPrivate } = await checkMembership(documentId, email);
+    const { isVetted, isPrivate } = await checkMembership(c, email);
     if (isVetted) {
       console.log(`Granting vetted role to user ${userId}`);
       await grantRole(
@@ -194,7 +344,11 @@ app.get("/oauth", async (c) => {
   return c.html(success());
 });
 
-const checkMembership = async (documentId: string, email: string) => {
+const checkMembership = async (c: any, email: string) => {
+  const documentId = c.env.hmu_bot.get("sheet");
+  if (!documentId) {
+    throw new Error("no 'sheet' in KV store");
+  }
   const [vettedSheet, privateSheet] = await Promise.all([
     fetchSheet(documentId, "Vetted Members!D2:D"),
     fetchSheet(documentId, "Private Members!D2:D"),
