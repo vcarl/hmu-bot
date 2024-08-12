@@ -68,7 +68,10 @@ app.use("/discord", async (c, next) => {
 // Actual logic
 app.post("/discord", async (c) => {
   const interaction = await c.req.json();
-  console.log("data:", JSON.stringify(interaction.data, null, 2));
+  console.log(
+    `interaction type: ${interaction.type}. custom_id: ${interaction.data?.custom_id}`,
+  );
+
   // top-level interactions (slash commands etc)
   switch (interaction.type) {
     case 1:
@@ -144,8 +147,36 @@ app.post("/discord", async (c) => {
           },
         });
       }
-      if (interaction.data.name.includes("verify-email")) {
-        const [_, email] = interaction.data.name.split("verify-email:");
+    }
+    case 3: {
+      if (interaction.data.custom_id === "manual-verify") {
+        return c.json({
+          type: InteractionResponseType.MODAL,
+          data: {
+            custom_id: "modal-verify-email",
+            title: "What email do you subscribe to HMU with?",
+            components: [
+              {
+                type: 1,
+                components: [
+                  {
+                    type: MessageComponentTypes.INPUT_TEXT,
+                    custom_id: "email",
+                    label: "Email",
+                    style: TextStyleTypes.SHORT,
+                    max_length: 100,
+                    placeholder: "calvin@gross.edu",
+                    required: true,
+                  },
+                ],
+              },
+            ],
+          },
+        });
+      }
+
+      if (interaction.data.custom_id.includes("verify-email")) {
+        const [_, email] = interaction.data.custom_id.split("verify-email:");
         return c.json({
           type: InteractionResponseType.MODAL,
           data: {
@@ -175,7 +206,9 @@ app.post("/discord", async (c) => {
     case 5: {
       if (interaction.data.custom_id === "modal-verify-email") {
         // Send verification email, respond with a new modal for code
-        const email = interaction.data.components[0].components[0].value;
+        const email = cleanEmail(
+          interaction.data.components[0].components[0].value,
+        );
         const otpGen = new OTP();
         const otp = otpGen.hotp(0);
         await sendEmail(
@@ -208,81 +241,85 @@ app.post("/discord", async (c) => {
         });
       }
       if (interaction.data.custom_id.includes("modal-confirm-code")) {
-        const [_, email] = interaction.data.custom_id.split(
+        const [_, rawEmail] = interaction.data.custom_id.split(
           "modal-confirm-code:",
         );
         const code = interaction.data.components[0].components[0].value;
+        const email = cleanEmail(rawEmail);
 
-        const userId = interaction.user.id;
+        const userId = interaction.member.user.id;
         const [storedCode, vettedRoleId, privateRoleId] = await Promise.all([
           c.env.hmu_bot.get(`email:${email}`),
           c.env.hmu_bot.get("vetted"),
           c.env.hmu_bot.get("private"),
         ]);
-        console.log({ userId, code, storedCode });
-        if (code === (await storedCode)) {
-          const { isPrivate, isVetted } = await checkMembership(
-            c,
-            cleanEmail(email),
-          );
+        // check if code matches the one in the db
+        if (code !== storedCode) {
+          return c.json({
+            type: InteractionResponseType.UPDATE_MESSAGE,
+            data: { content: `That’s not the right code! Try again?` },
+          });
+        }
+        try {
+          const { isPrivate, isVetted } = await checkMembership(c, email);
+          if (!isPrivate && !isVetted) {
+            return c.json({
+              type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+              data: {
+                content: `That’s the right code, but you’re not on the list 👀 [Apply to join](https://www.hitmeupnyc.com/join)`,
+                flags: InteractionResponseFlags.EPHEMERAL,
+              },
+            });
+          }
+
           if (isVetted) {
             console.log(`Granting vetted role to user ${userId}`);
-            await grantRole(
+            const a = await grantRole(
               c.env.DISCORD_TOKEN,
               c.env.DISCORD_GUILD_ID,
               vettedRoleId,
               userId,
             );
+            if (!a.ok) {
+              console.log("Discord error:", a.status, await a.text());
+            }
           }
 
           if (isPrivate) {
             console.log(`Granting private role to user ${userId}`);
-            await grantRole(
+            const a = await grantRole(
               c.env.DISCORD_TOKEN,
               c.env.DISCORD_GUILD_ID,
               privateRoleId,
               userId,
             );
+            if (!a.ok) {
+              console.log("Discord error:", a.status, await a.text());
+            }
           }
+
+          return c.json({
+            type: InteractionResponseType.UPDATE_MESSAGE,
+            data: {
+              content: `Thank you! You’ve verified your email and have been granted access to private spaces ✨`,
+              // Need to explicitly include 'no components' to clear them.
+              components: [],
+            },
+          });
+        } catch (e) {
+          return c.json({
+            type: InteractionResponseType.UPDATE_MESSAGE,
+            data: {
+              content: `Hmm you gave the right code, but something went wrong applying role. Ping one of the admins for help.`,
+            },
+          });
         }
-        // check if code matches the one in the db
       }
     }
     case 9: {
     }
   }
-  // Buttons etc
-  // there's probably a way to move this up into the first switch
-  switch (interaction.data.component_type) {
-    case 2: {
-      if (interaction.data.custom_id === "manual-verify") {
-        return c.json({
-          type: InteractionResponseType.MODAL,
-          data: {
-            custom_id: "modal-verify-email",
-            title: "What email do you subscribe to HMU?",
-            components: [
-              {
-                type: 1,
-                components: [
-                  {
-                    type: MessageComponentTypes.INPUT_TEXT,
-                    custom_id: "email",
-                    label: "Email",
-                    style: TextStyleTypes.SHORT,
-                    min_length: 5,
-                    max_length: 100,
-                    placeholder: "calvin@gross.edu",
-                    required: true,
-                  },
-                ],
-              },
-            ],
-          },
-        });
-      }
-    }
-  }
+
   return c.json({ message: "Something went wrong" });
 });
 app.get("/oauth", async (c) => {
