@@ -28,7 +28,7 @@ export async function fetchEmailFromCode(
 export async function grantRole(token, guildId, roleId, userId) {
   const res = await retry(() =>
     fetch(
-      `https://discord.com/api//guilds/${guildId}/members/${userId}/roles/${roleId}`,
+      `https://discord.com/api/guilds/${guildId}/members/${userId}/roles/${roleId}`,
       {
         method: "PUT",
         headers: {
@@ -38,7 +38,6 @@ export async function grantRole(token, guildId, roleId, userId) {
     ),
   );
 
-  console.log({ res, token });
   return res;
 }
 
