@@ -305,6 +305,7 @@ app.post("/discord", async (c) => {
             },
           });
         } catch (e) {
+          console.error(e);
           return c.json({
             type: InteractionResponseType.UPDATE_MESSAGE,
             data: {
@@ -335,6 +336,11 @@ app.get("/oauth", async (c) => {
   ]);
 
   if (!vettedRoleId || !privateRoleId) {
+    console.error(
+      "Couldn't load Discord Role IDs:",
+      vettedRoleId,
+      privateRoleId,
+    );
     return c.html(
       layout(
         "<p>Oh no, for some reason a required value was missing. Please report this to the Discord admins, this shouldn't have been possible.</p>",
@@ -364,11 +370,13 @@ app.get("/oauth", async (c) => {
     }
 
     if (!isPrivate && !isVetted) {
+      console.error("Email not found in mailing lists");
       return c.html(
         `<p>${email} was not found in the list of vetted members.</p>`,
       );
     }
   } catch (e) {
+    console.error("Something went wrong:", e);
     return c.html(
       layout(
         "<p>Oh no, something went wrong while checking your membership! Please report this to the Discord admins, this shouldn't have been possible.</p>",

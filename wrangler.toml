@@ -11,3 +11,6 @@ MAILJET_PUBLIC = "8eb3e314b0cd8d03efe9fb7bd76d9277"
 [[kv_namespaces]]
 binding = "hmu_bot"
 id = "ccc42109ffc24cf6acead448dcb84035"
+
+[observability]
+enabled = true
