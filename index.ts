@@ -400,15 +400,17 @@ const checkMembership = async (c: any, email: string) => {
   const lcEmail = cleanEmail(email);
 
   const vettedEmails = getEmailListFromSheetValues(vettedSheet.values);
-  const isVetted = vettedEmails.some((e) => e.toLowerCase() === lcEmail);
+  const isVetted = vettedEmails.some((e) => e.toLowerCase().includes(lcEmail));
 
   const privateEmails = getEmailListFromSheetValues(privateSheet.values);
-  const isPrivate = privateEmails.some((e) => e.toLowerCase() === lcEmail);
+  const isPrivate = privateEmails.some((e) =>
+    e.toLowerCase().includes(lcEmail),
+  );
   return { isVetted, isPrivate };
 };
 
 const getEmailListFromSheetValues = (sheetValues) =>
-  sheetValues.flatMap((v) => v.flat());
+  sheetValues.flatMap((v) => v.flat()) as string[];
 
 export default app;
 
