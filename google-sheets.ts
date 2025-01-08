@@ -12,7 +12,7 @@ export function init(privateKey: string) {
 }
 
 export async function fetchSheet(id: string, range: string) {
-  const response = await retry(() =>
+  const res = await retry(() =>
     fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${id}/values/${encodeURIComponent(
         range,
@@ -26,7 +26,8 @@ export async function fetchSheet(id: string, range: string) {
       },
     ),
   );
-  return await response.json();
+  console.log("SHEETS", res.ok, res.status);
+  return await res.json();
 }
 
 function retry<T>(
