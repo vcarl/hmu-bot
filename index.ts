@@ -524,3 +524,16 @@ const retrieveSheetId = (url: string) => {
 const cleanEmail = (email: string) => {
   return email.toLowerCase();
 };
+
+const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+
+const sanitizeEmail = (arbitraryText: string) => {
+  return arbitraryText.replace(emailRegex, (match) => {
+    const [local, domain] = match.split("@");
+    return `${local[0]}${"*".repeat(local.length - 1)}@${domain}`;
+  });
+};
+
+const log = console.log.bind(console);
+console.log = (...args) =>
+  log(...args.map((i) => (typeof i === "string" ? sanitizeEmail(i) : i)));
