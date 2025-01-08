@@ -30,6 +30,13 @@ export const sendEmail = async (
   };
   const res = await fetch("https://api.mailjet.com/v3.1/send", req);
 
-  console.log("MAILJET", res.ok, res.status, JSON.stringify(await res.json()));
+  const output = await res.json();
+  const [address, host] = output.Messages[0].To[0].Email.split("@");
+  console.log(
+    "MAILJET",
+    res.ok,
+    res.status,
+    `${address[0]}${"*".repeat(address.length - 1)}@${host}`,
+  );
   return res;
 };
