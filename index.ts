@@ -129,18 +129,28 @@ app.post("/discord", async (c) => {
             },
           });
         }
-        const { isVetted, isPrivate } = await checkMembership(c, email);
-        return c.json({
-          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-          data: {
-            flags: InteractionResponseFlags.EPHEMERAL,
-            content: `This email ${
-              isVetted ? "IS" : "is NOT"
-            } a vetted member and ${
-              isPrivate ? "IS" : "is NOT"
-            } a private member`,
-          },
-        });
+        try {
+          const { isVetted, isPrivate } = await checkMembership(c, email);
+          return c.json({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: {
+              flags: InteractionResponseFlags.EPHEMERAL,
+              content: `This email ${
+                isVetted ? "IS" : "is NOT"
+              } a vetted member and ${
+                isPrivate ? "IS" : "is NOT"
+              } a private member`,
+            },
+          });
+        } catch (e) {
+          return c.json({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: {
+              flags: InteractionResponseFlags.EPHEMERAL,
+              content: `Something went wrong checking membership. ${e.message}`,
+            },
+          });
+        }
       }
     }
     case 3: {
@@ -308,7 +318,7 @@ app.post("/discord", async (c) => {
           return c.json({
             type: InteractionResponseType.UPDATE_MESSAGE,
             data: {
-              content: `Hmm you gave the right code, but something went wrong applying role. Ping one of the admins for help.`,
+              content: `Hmm you gave the right code, but something went wrong applying role: ${e.message} Ping one of the admins for help, vcarl wrote this bot.`,
             },
           });
         }
@@ -395,6 +405,13 @@ const checkMembership = async (c: any, email: string) => {
     fetchSheet(documentId, "Vetted Members!D2:D"),
     fetchSheet(documentId, "Private Members!D2:D"),
   ]);
+
+  if (!vettedSheet.values) {
+    throw new Error("Couldn't find the Vetted list.");
+  }
+  if (!privateSheet.values) {
+    throw new Error("Couldn't find the Private list.");
+  }
 
   const lcEmail = cleanEmail(email);
 
