@@ -16,7 +16,6 @@ import { fetchEmailFromCode, grantRole } from "./discord";
 import { layout, success } from "./templates";
 import { sendEmail } from "./mailjet";
 import OTP from "otp";
-import { MessageFlagsBitField } from "discord.js";
 
 type HonoBindings = {
   DISCORD_APP_ID: string;
