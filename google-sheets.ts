@@ -12,8 +12,8 @@ export function init(privateKey: string) {
 }
 
 export async function fetchSheet(id: string, range: string) {
-  const res = await retry(() =>
-    fetch(
+  return await retry(async () => {
+    const res = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${id}/values/${encodeURIComponent(
         range,
       )}`,
@@ -24,14 +24,17 @@ export async function fetchSheet(id: string, range: string) {
           Authorization: `Bearer ${accessToken}`,
         },
       },
-    ),
-  );
-  const output = await res.json();
-  console.log("SHEETS", res.ok, res.status);
-  if (!res.ok) {
-    throw new Error(JSON.stringify(output));
-  }
-  return output;
+    );
+    const output = await res.json();
+    console.log("SHEETS", res.ok, res.status);
+    if (!res.ok) {
+      console.log("SHEETS", JSON.stringify(output));
+      throw new Error(
+        "Something went wrong while retrieving the list of emails.",
+      );
+    }
+    return output;
+  });
 }
 
 function retry<T>(
