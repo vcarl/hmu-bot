@@ -426,7 +426,7 @@ const checkMembership = async (c: any, email: string) => {
 };
 
 const getEmailListFromSheetValues = (sheetValues) =>
-  sheetValues.flatMap((v) => v.flat()) as string[];
+  sheetValues.flatMap((v) => v.flat()).filter((x) => Boolean(x)) as string[];
 
 export default app;
 
