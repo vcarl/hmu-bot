@@ -26,8 +26,14 @@ export async function fetchSheet(id: string, range: string) {
       },
     ),
   );
-  console.log("SHEETS", res.ok, res.status);
-  return await res.json();
+  const output = await res.json();
+  console.log(
+    "SHEETS",
+    res.ok,
+    res.status,
+    !res.ok ? JSON.stringify(output) : "",
+  );
+  return output;
 }
 
 function retry<T>(
@@ -40,8 +46,13 @@ function retry<T>(
       fn()
         .then(resolve)
         .catch(async (error) => {
+          console.log(
+            `request failed, retry #${retryCount}`,
+            JSON.stringify(error),
+          );
           await reloadAccessToken();
           if (retryCount <= 0) {
+            console.log("request failed, giving up", JSON.stringify(error));
             reject(error);
           } else {
             setTimeout(() => {
