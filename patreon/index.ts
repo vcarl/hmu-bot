@@ -5,9 +5,9 @@ export const client = new Client({
   partials: [Partials.GuildMember],
 });
 
-const privateRole = "723757745030955009";
-const subscriberRole = "949302893582884935";
-const accessRole = "784093868181946368"; // talk
+const privateRole = "1260328377940836462";
+const subscriberRole = "1334572997687771196";
+const accessRole = "1336774844292923533";
 
 client
   .login(process.env.DISCORD_TOKEN)
