@@ -9,6 +9,10 @@ const privateRole = "1260328377940836462";
 const vettedRole = "1260328524087033896";
 const subscriberRole = "1334572997687771196";
 const accessRole = "1336774844292923533";
+// const privateRole = "1258145608628178964";
+// const vettedRole = "1258145631231410376";
+// const subscriberRole = "1351259749798121562";
+// const accessRole = "1351259716617109634";
 
 client
   .login(process.env.DISCORD_TOKEN)
