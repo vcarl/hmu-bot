@@ -5,8 +5,8 @@ This is run as a systemd service in a DigitalOcean Droplet. The `docker.hmu.serv
 ```sh
 eval "$(ssh-agent -s)"
 ssh-add ~/.ssh/github
-git pull
 cd hmu-bot/patreon
+git pull
 docker build . -t hmu-bot:latest
 service docker.hmu restart
 
