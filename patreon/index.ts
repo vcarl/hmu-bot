@@ -69,14 +69,18 @@ client.on("guildMemberUpdate", async (oldMember, newMember) => {
       );
       await newMember.roles.remove(accessRole);
     }
-  } else if (
-    newMember.roles.cache.hasAll(privateRole, subscriberRole) ||
-    newMember.roles.cache.hasAll(vettedRole, subscriberRole)
+    return;
+  }
+  if (
+    !newMember.roles.cache.has(accessRole) &&
+    (newMember.roles.cache.hasAll(subscriberRole, privateRole) ||
+      newMember.roles.cache.hasAll(subscriberRole, vettedRole))
   ) {
     console.log(
       `User ${newMember.nickname} (${newMember.id}) now has access to subscriber channels`,
     );
     await newMember.roles.add(accessRole);
+    return;
   }
   log(`User ${newMember.nickname} update ignored`);
 });
