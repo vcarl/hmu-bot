@@ -1,5 +1,12 @@
 import { Client, GatewayIntentBits, Partials } from "discord.js";
 
+const makeLogger =
+  (prefix, attr: "log" | "warn" | "error" = "log") =>
+  (...args) =>
+    console[attr](prefix, ...args);
+
+const log = makeLogger("guildMemberUpdate");
+
 export const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
   partials: [Partials.GuildMember],
@@ -31,23 +38,23 @@ client
   });
 
 client.on("guildMemberUpdate", async (oldMember, newMember) => {
+  log(`Partials? new: ${newMember.partial}, old: ${oldMember.partial}`);
   if (newMember.partial) {
     newMember = await newMember.fetch();
   }
   if (oldMember.partial) {
     oldMember = await oldMember.fetch();
   }
-  console.log(
-    "guildmemberupdate",
-    `old: ${oldMember.roles.cache.size}. new: ${
+  log(
+    `User ${newMember.nickname} had ${oldMember.roles.cache.size} roles, now ${
       newMember.roles.cache.size
-    } (${newMember.roles.cache.map((r) => r.name).join(",")})`,
+    }: (${newMember.roles.cache.map((r) => r.name).join(",")})`,
   );
   if (
     oldMember.roles.cache.size === newMember.roles.cache.size &&
     oldMember.roles.cache.every((r) => newMember.roles.cache.has(r.id))
   ) {
-    console.log("guildmemberupdate", "roles did not change");
+    log("User ${newMember.nickname} roles did not change");
     return;
   }
 
@@ -58,7 +65,7 @@ client.on("guildMemberUpdate", async (oldMember, newMember) => {
       !newMember.roles.cache.hasAll(vettedRole, subscriberRole)
     ) {
       console.log(
-        `User ${newMember.id} no longer has private+patreon, removing access`,
+        `User ${newMember.nickname} (${newMember.id}) no longer has private+patreon, removing access`,
       );
       await newMember.roles.remove(accessRole);
     }
@@ -66,9 +73,12 @@ client.on("guildMemberUpdate", async (oldMember, newMember) => {
     newMember.roles.cache.hasAll(privateRole, subscriberRole) ||
     newMember.roles.cache.hasAll(vettedRole, subscriberRole)
   ) {
-    console.log(`User ${newMember.id} now has access to subscriber channels`);
+    console.log(
+      `User ${newMember.nickname} (${newMember.id}) now has access to subscriber channels`,
+    );
     await newMember.roles.add(accessRole);
   }
+  log(`User ${newMember.nickname} update ignored`);
 });
 
 process.on("unhandledRejection", console.error);
