@@ -46,15 +46,19 @@ client.on("guildMemberUpdate", async (oldMember, newMember) => {
     oldMember = await oldMember.fetch();
   }
   log(
-    `User ${newMember.nickname} had ${oldMember.roles.cache.size} roles, now ${
-      newMember.roles.cache.size
-    }: (${newMember.roles.cache.map((r) => r.name).join(",")})`,
+    `User ${newMember.displayName} had ${
+      oldMember.roles.cache.size
+    } roles, now ${newMember.roles.cache.size}: (${newMember.roles.cache
+      .map((r) => r.name)
+      .join(",")})`,
   );
   if (
     oldMember.roles.cache.size === newMember.roles.cache.size &&
     oldMember.roles.cache.every((r) => newMember.roles.cache.has(r.id))
   ) {
-    log("User ${newMember.nickname} roles did not change");
+    log(
+      `Outcome: User ${newMember.displayName} (${newMember.id}) roles did not change`,
+    );
     return;
   }
 
@@ -65,7 +69,7 @@ client.on("guildMemberUpdate", async (oldMember, newMember) => {
       !newMember.roles.cache.hasAll(vettedRole, subscriberRole)
     ) {
       console.log(
-        `User ${newMember.nickname} (${newMember.id}) no longer has private+patreon, removing access`,
+        `Outcome: User ${newMember.displayName} (${newMember.id}) no longer has private+patreon, removing access`,
       );
       await newMember.roles.remove(accessRole);
     }
@@ -77,12 +81,14 @@ client.on("guildMemberUpdate", async (oldMember, newMember) => {
       newMember.roles.cache.hasAll(subscriberRole, vettedRole))
   ) {
     console.log(
-      `User ${newMember.nickname} (${newMember.id}) now has access to subscriber channels`,
+      `Outcome: User ${newMember.displayName} (${newMember.id}) now has access to subscriber channels`,
     );
     await newMember.roles.add(accessRole);
     return;
   }
-  log(`User ${newMember.nickname} update ignored`);
+  log(
+    `Outcome: User ${newMember.displayName} (${newMember.id}) update ignored`,
+  );
 });
 
 process.on("unhandledRejection", console.error);
