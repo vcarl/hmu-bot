@@ -52,15 +52,13 @@ client.on("guildMemberUpdate", async (oldMember, newMember) => {
       .map((r) => r.name)
       .join(",")})`,
   );
-  if (
-    oldMember.roles.cache.size === newMember.roles.cache.size &&
-    oldMember.roles.cache.every((r) => newMember.roles.cache.has(r.id))
-  ) {
-    log(
-      `Outcome: User ${newMember.displayName} (${newMember.id}) roles did not change`,
-    );
-    return;
-  }
+  // Disabled because Discord apparently is not super reliable at emitting the
+  // information required to use it. Spotted an instance in practice where a role
+  // change wasn't reflected in old/new data
+  // if (
+  //   oldMember.roles.cache.size === newMember.roles.cache.size &&
+  //   oldMember.roles.cache.every((r) => newMember.roles.cache.has(r.id))
+  // )
 
   if (newMember.roles.cache.has(accessRole)) {
     // If they have the access role but not private+patreon, remove the access role
