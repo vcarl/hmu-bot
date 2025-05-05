@@ -402,8 +402,8 @@ const checkMembership = async (c: any, email: string) => {
     throw new Error("no 'sheet' in KV store");
   }
   const [vettedSheet, privateSheet] = await Promise.all([
-    fetchSheet(documentId, "Vetted Members!D2:D"),
-    fetchSheet(documentId, "Private Members!D2:D"),
+    fetchSheet(documentId, "Vetted Members!C2:C"),
+    fetchSheet(documentId, "Private Members!C2:C"),
   ]);
 
   if (!vettedSheet.values) {
