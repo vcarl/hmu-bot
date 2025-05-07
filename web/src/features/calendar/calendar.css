@@ -1,7 +1,9 @@
 @font-face {
   font-family: "Hatton";
-  src: format("woff") url("/fonts/PP-Hatton-Medium-500.woff");
+  src: url("/fonts/PP-Hatton-Medium-500.otf"),
+    url("/fonts/PP-Hatton-Medium-500.woff") format("woff");
 }
+
 .hmu {
   background-color: rgb(138, 71, 255);
 
