@@ -15,12 +15,12 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    align-items: center;
     justify-content: space-evenly;
   }
 
   .fc .fc-toolbar.fc-header-toolbar {
     margin-bottom: 0;
+    padding-left: 0.5rem;
   }
 
   .fc .fc-button {
@@ -30,9 +30,10 @@
   }
 
   .fc .fc-toolbar-title {
-    font-size: min(10vw, 5rem);
-    font-family: "Hatton";
+    font-size: 4rem;
+    font-family: "Genty";
   }
+
   .calendar {
     .fc-theme-standard td,
     .fc-theme-standard th {

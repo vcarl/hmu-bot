@@ -29,16 +29,18 @@ export const Agenda = ({ events }: { events: Event[] }) => {
       eventContent={(eventInfo) => {
         const [title, description, image] = eventInfo.event.title.split("|||");
         return (
-          <div className="max-w-full text-lg bg-purple-400 text-gray-900 p-1">
-            <p>{title}</p>
-            <p>{description}</p>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              className="pointer-events-none"
-              alt={description}
-              src={image}
-            />
-          </div>
+          <a href={eventInfo.event.url}>
+            <div className="max-w-full text-lg bg-purple-400 text-gray-900 p-1">
+              <p>{title}</p>
+              <p>{description}</p>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                className="pointer-events-none"
+                alt={description}
+                src={image}
+              />
+            </div>
+          </a>
         );
       }}
     />

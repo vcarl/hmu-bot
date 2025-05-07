@@ -1,7 +1,6 @@
 @font-face {
-  font-family: "Hatton";
-  src: url("/fonts/PP-Hatton-Medium-500.otf"),
-    url("/fonts/PP-Hatton-Medium-500.woff") format("woff");
+  font-family: "Genty";
+  src: url("/fonts/GentyDemo-Regular.woff") format("woff");
 }
 
 @import "tailwindcss";
@@ -9,7 +8,7 @@
 
 :root {
   --background: #8a47ff;
-  --foreground: #171717;
+  --foreground: #f0f8ff;
 }
 
 @theme inline {
@@ -28,7 +27,7 @@
 
 body {
   background: #8a47ff;
-  color: var(--foreground);
+  color: #f0f8ff;
   font-family: Arial, Helvetica, sans-serif;
 }
 
