@@ -14,7 +14,7 @@ export const Calendar = ({ events }: { events: Event[] }) => {
         title: `${e.name.text}|||${e.description.text}|||${e.logo.url}`,
         url: e.url,
       };
-    });
+    }) as FullCalendar["props"]["events"];
   }, [events]);
 
   return (
@@ -27,20 +27,23 @@ export const Calendar = ({ events }: { events: Event[] }) => {
         const [title, description, image] = eventInfo.event.title.split("|||");
         const [tag, name] = title.split(": ");
         return (
-          <div className="overflow-hidden bg-purple-400 text-gray-900 p-1">
-            <div className="w-fit">
-              <div>
+          <div
+            className="max-w-full text-lg hint--top hint--large bg-purple-400 text-gray-900 p-1"
+            aria-label={description}
+          >
+            <div className="overflow-hidden">
+              <p>
                 <span>{eventInfo.timeText}</span> •{" "}
                 {tag ? <span>{tag}</span> : undefined}
-              </div>
-              <div>{tag ? <span>{name}</span> : <span>{title}</span>}</div>
+              </p>
+              <p>{tag ? <span>{name}</span> : <span>{title}</span>}</p>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                className="pointer-events-none"
+                alt={description}
+                src={image}
+              />
             </div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              className="pointer-events-none"
-              alt={description}
-              src={image}
-            />
           </div>
         );
       }}

@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "./hint.css";
+@import "../features/calendar/calendar.css";
 
 :root {
   --background: #ffffff;
