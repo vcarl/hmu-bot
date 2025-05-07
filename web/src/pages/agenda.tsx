@@ -1,6 +1,6 @@
 import React from "react";
 import type { InferGetStaticPropsType, GetStaticProps } from "next";
-import { Calendar } from "@/features/calendar/Calendar";
+import { Agenda } from "@/features/calendar/Agenda";
 import { Event } from "@/features/calendar/event";
 
 async function getEvents() {
@@ -19,10 +19,10 @@ export const getStaticProps = (async () => {
   return { props: { events: await getEvents() } };
 }) satisfies GetStaticProps<{ events: Event[] }>;
 
-const EventCalendarPage = ({
+const EventAgendaPage = ({
   events,
 }: InferGetStaticPropsType<typeof getStaticProps>) => {
-  return <Calendar events={events} />;
+  return <Agenda events={events} />;
 };
 
-export default EventCalendarPage;
+export default EventAgendaPage;

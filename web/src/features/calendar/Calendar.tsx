@@ -19,6 +19,7 @@ export const Calendar = ({ events }: { events: Event[] }) => {
 
   return (
     <FullCalendar
+      viewClassNames="calendar"
       ref={calendarRef}
       plugins={[dayGridPlugin]}
       initialView="dayGridMonth"

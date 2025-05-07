@@ -1,0 +1,63 @@
+.hmu {
+  --fc-border-color: #171717;
+  /* .fc {
+    height: 100vh !important;
+    display: grid;
+    grid: 1fr 6fr / 1fr;
+  } */
+  .fc-view-harness.fc-view-harness-active {
+    height: unset !important;
+  }
+
+  .fc .fc-button-group {
+    margin: 0;
+  }
+  /* .fc .fc-toolbar-chunk {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-evenly;
+  } */
+
+  .fc .fc-toolbar.fc-header-toolbar {
+    margin-bottom: 0;
+  }
+
+  /* .fc .fc-button {
+    height: 3rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  } */
+
+  /* .fc .fc-toolbar-title {
+    font-size: min(10vw, 5rem);
+    font-family: "Hatton";
+  } */
+
+  /* .fc-theme-standard td,
+  .fc-theme-standard th {
+    border: 1px solid oklch(71.4% 0.203 305.504);
+  } */
+  .agenda {
+    .fc-list-event-title,
+    .fc-list-event-time,
+    .fc-view,
+    .fc-theme-standard th {
+      border: none;
+    }
+    .fc-list-day.fc-day th {
+      background-color: #8a47ff;
+      border: none;
+    }
+    .fc-list-event:hover td {
+      background: unset;
+    }
+    .fc-list-event-graphic {
+      display: none;
+    }
+    .fc-list-day-cushion {
+      color: #171717;
+    }
+  }
+}

@@ -1,12 +1,4 @@
-@font-face {
-  font-family: "Hatton";
-  src: url("/fonts/PP-Hatton-Medium-500.otf"),
-    url("/fonts/PP-Hatton-Medium-500.woff") format("woff");
-}
-
 .hmu {
-  background-color: rgb(138, 71, 255);
-
   .fc {
     height: 100vh !important;
     display: grid;
@@ -41,9 +33,10 @@
     font-size: min(10vw, 5rem);
     font-family: "Hatton";
   }
-
-  .fc-theme-standard td,
-  .fc-theme-standard th {
-    border: 1px solid oklch(71.4% 0.203 305.504);
+  .calendar {
+    .fc-theme-standard td,
+    .fc-theme-standard th {
+      border: 1px solid oklch(71.4% 0.203 305.504);
+    }
   }
 }
