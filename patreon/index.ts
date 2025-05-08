@@ -39,12 +39,10 @@ client
 
 client.on("guildMemberUpdate", async (oldMember, newMember) => {
   log(`Partials? new: ${newMember.partial}, old: ${oldMember.partial}`);
-  if (newMember.partial) {
-    newMember = await newMember.fetch();
-  }
-  if (oldMember.partial) {
-    oldMember = await oldMember.fetch();
-  }
+  [newMember, oldMember] = await Promise.all([
+    newMember.partial ? newMember.fetch() : Promise.resolve(newMember),
+    oldMember.partial ? oldMember.fetch() : Promise.resolve(oldMember),
+  ]);
   log(
     `User ${newMember.displayName} had ${
       oldMember.roles.cache.size
