@@ -3,9 +3,7 @@ import { Client, GatewayIntentBits, Partials } from "discord.js";
 const makeLogger =
   (prefix, attr: "log" | "warn" | "error" = "log") =>
   (...args) =>
-    console[attr](prefix, ...args);
-
-const log = makeLogger("guildMemberUpdate");
+    console[attr](new Date(), prefix, ...args);
 
 export const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
@@ -38,17 +36,16 @@ client
   });
 
 client.on("guildMemberUpdate", async (oldMember, newMember) => {
+  const log = makeLogger(`${oldMember.id} (${oldMember.displayName})`);
   log(`Partials? new: ${newMember.partial}, old: ${oldMember.partial}`);
   [newMember, oldMember] = await Promise.all([
     newMember.partial ? newMember.fetch() : Promise.resolve(newMember),
     oldMember.partial ? oldMember.fetch() : Promise.resolve(oldMember),
   ]);
   log(
-    `User ${newMember.displayName} had ${
-      oldMember.roles.cache.size
-    } roles, now ${newMember.roles.cache.size}: (${newMember.roles.cache
-      .map((r) => r.name)
-      .join(",")})`,
+    `had ${oldMember.roles.cache.size} roles, now ${
+      newMember.roles.cache.size
+    }: (${newMember.roles.cache.map((r) => r.name).join(",")})`,
   );
   // Disabled because Discord apparently is not super reliable at emitting the
   // information required to use it. Spotted an instance in practice where a role
@@ -64,9 +61,7 @@ client.on("guildMemberUpdate", async (oldMember, newMember) => {
       !newMember.roles.cache.hasAll(privateRole, subscriberRole) &&
       !newMember.roles.cache.hasAll(vettedRole, subscriberRole)
     ) {
-      console.log(
-        `Outcome: User ${newMember.displayName} (${newMember.id}) no longer has private+patreon, removing access`,
-      );
+      log(`Outcome: no longer has private+patreon, removing access`);
       await newMember.roles.remove(accessRole);
     }
     return;
@@ -76,15 +71,11 @@ client.on("guildMemberUpdate", async (oldMember, newMember) => {
     (newMember.roles.cache.hasAll(subscriberRole, privateRole) ||
       newMember.roles.cache.hasAll(subscriberRole, vettedRole))
   ) {
-    console.log(
-      `Outcome: User ${newMember.displayName} (${newMember.id}) now has access to subscriber channels`,
-    );
+    log(`Outcome: now has access to subscriber channels`);
     await newMember.roles.add(accessRole);
     return;
   }
-  log(
-    `Outcome: User ${newMember.displayName} (${newMember.id}) update ignored`,
-  );
+  log(`Outcome: update ignored`);
 });
 
 process.on("unhandledRejection", console.error);
