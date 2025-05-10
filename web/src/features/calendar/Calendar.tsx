@@ -57,9 +57,8 @@ export const Calendar = ({ events, switchView, isMobile }: Props) => {
                 {eventInfo.timeText}
                 {name ? ` • ${tag}` : undefined }
               </p>
-              <p>
-                <h3 className="font-semibold text-wrap">{name? name : eventInfo.event.title}</h3>
-              </p>
+              <h3 className="font-semibold text-wrap">{name? name : eventInfo.event.title}</h3>
+              
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 className="pointer-events-none"
